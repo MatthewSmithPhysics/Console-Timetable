@@ -43,3 +43,7 @@ They may also create .scls files with information about their classes, and load 
 ```
 load [filename (without extension)]
 ```
+
+## License
+
+Console Timetable is provided under an MIT License. See the LICENSE file for more information. 
