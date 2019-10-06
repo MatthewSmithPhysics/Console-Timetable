@@ -58,7 +58,7 @@ class Console:
         filename = "{}.scls".format(args[0])
         data = numpy.loadtxt(filename, delimiter = ",", dtype = str)
         for cls in data:
-            self.timetable.createDir(cls[0], cls[1], cls[2], cls[3])
+            self.timetable.createDir(cls[0], cls[1], cls[2], cls[3], cls[4])
         return
     def save(self, args):
         filename = "{}.stt".format(args[0])
@@ -72,14 +72,38 @@ class Timetable:
     def __init__(self):
         self.sched = []
         self.dayName = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        self.complimentary = {
+            "white": "black",
+            "silver": "black",
+            "gray": "black",
+            "black": "white",
+            "red": "white",
+            "maroon": "white",
+            "yellow": "black",
+            "olive": "white",
+            "lime": "black",
+            "green": "white",
+            "aqua": "black",
+            "teal": "white",
+            "blue": "white",
+            "navy": "white",
+            "fuchsia": "black",
+            "purple": "white",
+            "#ff7000": "black",
+            "#703100": "white"
+        }
+        self.conv = {
+            "orange": "#ff7000",
+            "brown": "#703100"
+        }
         self.form = {}
-        self.form["Free"] = Form("", "", "")
+        self.form["free"] = Form("", "", "", "white")
         for i in range(52):
             table = []
             for j in range(24):
                 row = []
                 row.append("{}:00".format(j))
-                for k in range(7): row.append(self.form["Free"])
+                for k in range(7): row.append(self.form["free"])
                 table.append(row)
             self.sched.append(table)
         return
@@ -88,7 +112,8 @@ class Timetable:
         name = input("Name: ")
         lect = input("Lecturer: ")
         room = input("Room: ")
-        newForm = Form(name, lect, room)
+        col = input("Colour: ")
+        newForm = Form(name, lect, room, col)
         self.form[abrv] = newForm
         return
     def trash(self, args):
@@ -104,8 +129,8 @@ class Timetable:
         resp = input("Current Room: {}. Edit? (y/n)".format(self.form[abrv].room))
         if(resp in ["y", "Y"]): self.form[abrv].room = input("New Room: ")
         return
-    def createDir(self, abrv, name, lect, room):
-        newForm = Form(name, lect, room)
+    def createDir(self, abrv, name, lect, room, col):
+        newForm = Form(name, lect, room, col)
         print("[Creating {}]".format(abrv))
         self.form[abrv] = newForm
         return
@@ -114,13 +139,17 @@ class Timetable:
         week = int(args[1])
         day = self.dayName.index(args[2]) + 1
         time = int(args[3])
+        if(self.sched[week - 1][time][day] != self.form["free"]):
+            occ = self.sched[week - 1][time][day]
+            resp = input("Overwrite '{}' for week {} on {} at {}:00?".format(occ.name, week, args[1], time))
+            if(resp not in ["Y", "y"]): return
         self.sched[week - 1][time][day] = self.form[session]
         return
     def erase(self, args):
         week = int(args[0])
         day = self.dayName.index(args[1]) + 1
         time = int(args[2])
-        self.sched[week - 1][time][day] = self.form["Free"]
+        self.sched[week - 1][time][day] = self.form["free"]
         return
     def multiset(self, args):
         session = args[0]
@@ -186,24 +215,33 @@ class Timetable:
         tmax = int(args[4])
         filename = "{}.html".format(args[5])
         subtable = []
+        colours = []
         for i in range(tmin, tmax):
             row = [self.sched[week - 1][i][0]]
+            colrow = ["silver"]
             for j in range(dmin, dmax + 1):
                 entry = self.sched[week - 1][i][j]
                 row.append(entry.name + "<br>" + entry.room + "&emsp;" + entry.lect)
+                colrow.append(entry.col)
             subtable.append(row)
+            colours.append(colrow)
         head = ["Time"]
         for day in range(dmin, dmax + 1):
             head.append(self.dayName[day - 1])
         output = open(filename, "w")
         output.write("<html>\n\t<h1>{}</h1>\n\t<table style='width:100%; border: 1px solid black'>\n\t\t<tr>".format(args[5]))
         for h in head:
-            output.write("\n\t\t\t<th style='border: 1px solid black'>{}</th>".format(h))
+            output.write("\n\t\t\t<th style='border: 1px solid black; background-color: silver'>{}</th>".format(h))
         output.write("\n\t\t</tr>")
         for row in subtable:
             output.write("\n\t\t<tr>")
             for entry in row:
-                output.write("\n\t\t\t<td style='border: 1px solid black'>{}</td>".format(entry))
+                col = "white"
+                if(colours[i][j] in self.conv):
+                    col = self.conv[colours[i][j]]
+                elif(colours[i][j] in self.complimentary): col = colours[i][j]
+                comp = self.complimentary[col]
+                output.write("\n\t\t\t<td style='border: 1px solid black; background-color: {}; color: '>{}</td>".format(col, comp, entry))
             output.write("\n\t\t</tr>")
         output.write("\n\t</table>\n</html>")
         output.close()
@@ -213,28 +251,42 @@ class Timetable:
         dmax = self.dayName.index(args[1]) + 1
         tmin = int(args[2])
         tmax = int(args[3])
-        fileroot = args[4]
+        folder = args[4]
+        fileroot = args[5]
         for week in range(1, 53):
             subtable = []
+            colours = []
             for i in range(tmin, tmax):
                 row = [self.sched[week - 1][i][0]]
+                colrow = ["silver"]
                 for j in range(dmin, dmax + 1):
                     entry = self.sched[week - 1][i][j]
                     row.append(entry.name + "<br>" + entry.room + "&emsp;" + entry.lect)
+                    colrow.append(entry.col)
                 subtable.append(row)
+                colours.append(colrow)
             head = ["Time"]
             for day in range(dmin, dmax + 1):
                 head.append(self.dayName[day - 1])
-            output = open("{}_{}.html".format(fileroot, week), "w")
+            output = open("{}/{}_{}.html".format(folder, fileroot, week), "w")
             output.write("<html>\n\t<h1>{}- Week {}</h1><table style='width:100%; border: 1px solid black'>\n\t\t<tr>".format(fileroot, week))
             for h in head:
-                output.write("\n\t\t\t<th style='border: 1px solid black'>{}</th>".format(h))
+                output.write("\n\t\t\t<th style='border: 1px solid black;  background-color: silver'>{}</th>".format(h))
             output.write("\n\t\t</tr>")
+            i = 0
             for row in subtable:
+                j = 0
                 output.write("\n\t\t<tr>")
                 for entry in row:
-                    output.write("\n\t\t\t<td style='border: 1px solid black'>{}</td>".format(entry))
+                    col = "white"
+                    if(colours[i][j] in self.conv):
+                        col = self.conv[colours[i][j]]
+                    elif(colours[i][j] in self.complimentary): col = colours[i][j]
+                    comp = self.complimentary[col]
+                    output.write("\n\t\t\t<td style='border: 1px solid black; background-color: {}; color: {}'>{}</td>".format(col, comp, entry))
+                    j = j + 1
                 output.write("\n\t\t</tr>")
+                i = i + 1
             output.write("\n\t</table>")
             if(week != 1):
                 output.write("\n\t<button onclick=\"window.location.href={}\">Previous Week</button>".format("'{}_{}.html'".format(fileroot, week - 1)))
@@ -244,10 +296,11 @@ class Timetable:
             output.close()
 
 class Form:
-    def __init__(self, name, lect, room):
+    def __init__(self, name, lect, room, col):
         self.name = name
         self.lect = lect
         self.room = room
+        self.col = col
 
 if __name__ == "__main__":
   console = Console()
