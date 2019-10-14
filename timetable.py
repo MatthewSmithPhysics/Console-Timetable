@@ -247,13 +247,15 @@ class Timetable:
         output.close()
         return
     def superHTML(self, args):
-        dmin = self.dayName.index(args[0]) + 1
-        dmax = self.dayName.index(args[1]) + 1
-        tmin = int(args[2])
-        tmax = int(args[3])
-        folder = args[4]
-        fileroot = args[5]
-        for week in range(1, 53):
+        weekmin = int(args[0])
+        weekmax = int(args[1])
+        dmin = self.dayName.index(args[2]) + 1
+        dmax = self.dayName.index(args[3]) + 1
+        tmin = int(args[4])
+        tmax = int(args[5])
+        folder = args[6]
+        fileroot = args[7]
+        for week in range(weekmin, weekmax + 1):
             subtable = []
             colours = []
             for i in range(tmin, tmax):
