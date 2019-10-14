@@ -20,7 +20,11 @@ class Console:
             "html": self.timetable.html,
             "superHTML": self.timetable.superHTML,
             "trash": self.timetable.trash,
-            "edit": self.timetable.edit
+            "edit": self.timetable.edit,
+            "conceive": self.timetable.conceive,
+            "conceiveDir": self.timetable.conceiveDir,
+            "note": self.timetable.note,
+            "multinote": self.timetable.multinote
         }
         return
     def reset(self):
@@ -71,6 +75,7 @@ class Console:
 class Timetable:
     def __init__(self):
         self.sched = []
+        self.event = []
         self.dayName = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         self.complimentary = {
             "white": "black",
@@ -97,15 +102,22 @@ class Timetable:
             "brown": "#703100"
         }
         self.form = {}
-        self.form["free"] = Form("", "", "", "white")
+        self.form["free"] = Session("", "", "", "white")
+        self.form["none"] = Event("")
         for i in range(52):
-            table = []
+            s_table = []
+            e_table = []
             for j in range(24):
-                row = []
-                row.append("{}:00".format(j))
-                for k in range(7): row.append(self.form["free"])
-                table.append(row)
-            self.sched.append(table)
+                s_row = []
+                e_row = []
+                s_row.append("{}:00".format(j))
+                for k in range(7): 
+                    s_row.append(self.form["free"])
+                    e_row.append(self.form["none"])
+                s_table.append(s_row)
+                e_table.append(e_row)
+            self.sched.append(s_table)
+            self.event.append(e_table)
         return
     def create(self, args):
         abrv = args[0]
@@ -113,8 +125,28 @@ class Timetable:
         lect = input("Lecturer: ")
         room = input("Room: ")
         col = input("Colour: ")
-        newForm = Form(name, lect, room, col)
+        newForm = Session(name, lect, room, col)
         self.form[abrv] = newForm
+        return
+    def conceive(self, args):
+        abrv = args[0]
+        name = input("Name: ")
+        newEvent = Event(name)
+        self.form[abrv] = newEvent
+        return
+    def note(self, args):
+        session = args[0]
+        week = int(args[1])
+        day = self.dayName.index(args[2])
+        time = int(args[3])
+        self.event[week - 1][time][day] = self.form[session]
+        return
+    def multinote(self, args):
+        ev = args[0]
+        weekmin = int(args[1])
+        weekmax = int(args[2])
+        weekinc = int(args[3])
+        for n in range(weekmin, weekmax + 1, weekinc): self.note([ev, n, day, time])
         return
     def trash(self, args):
         abrv = args[0]
@@ -130,7 +162,12 @@ class Timetable:
         if(resp in ["y", "Y"]): self.form[abrv].room = input("New Room: ")
         return
     def createDir(self, abrv, name, lect, room, col):
-        newForm = Form(name, lect, room, col)
+        newForm = Session(name, lect, room, col)
+        print("[Creating {}]".format(abrv))
+        self.form[abrv] = newForm
+        return
+    def conceiveDir(self, abrv, name):
+        newForm = Event(name)
         print("[Creating {}]".format(abrv))
         self.form[abrv] = newForm
         return
@@ -178,7 +215,8 @@ class Timetable:
             row = [self.sched[week - 1][i][0]]
             for j in range(dmin, dmax + 1):
                 entry = self.sched[week - 1][i][j]
-                row.append("{}\n{}\t{}".format(entry.name, entry.lect, entry.room))
+                ev = self.event[week - 1][i][j - 1]
+                row.append("{}\n{}\t{}\n{}".format(entry.name, entry.lect, entry.room, ev.name))
             subtable.append(row)
         head = ["Time"]
         for day in range(dmin, dmax + 1):
@@ -197,7 +235,8 @@ class Timetable:
             row = [self.sched[week - 1][i][0]]
             for j in range(dmin, dmax + 1):
                 entry = self.sched[week - 1][i][j]
-                row.append(entry.name + "\n" + entry.room + "\t" + entry.lect)
+                ev = self.event[week - 1][i][j - 1]
+                row.append("{}\n{}\t{}\n{}".format(entry.name, entry.lect, entry.room, ev.name))
             subtable.append(row)
         head = ["Time"]
         for day in range(dmin, dmax + 1):
@@ -221,7 +260,8 @@ class Timetable:
             colrow = ["silver"]
             for j in range(dmin, dmax + 1):
                 entry = self.sched[week - 1][i][j]
-                row.append(entry.name + "<br>" + entry.room + "&emsp;" + entry.lect)
+                ev = self.event[week - 1][i][j - 1]
+                row.append(entry.name + "<br>" + entry.room + "&emsp;" + entry.lect + "<br><strong>" + ev.name + "</strong>")
                 colrow.append(entry.col)
             subtable.append(row)
             colours.append(colrow)
@@ -263,7 +303,8 @@ class Timetable:
                 colrow = ["silver"]
                 for j in range(dmin, dmax + 1):
                     entry = self.sched[week - 1][i][j]
-                    row.append(entry.name + "<br>" + entry.room + "&emsp;" + entry.lect)
+                    ev = self.event[week - 1][i][j - 1]
+                    row.append(entry.name + "<br>" + entry.room + "&emsp;" + entry.lect + "<br><strong>" + ev.name + "</strong>")
                     colrow.append(entry.col)
                 subtable.append(row)
                 colours.append(colrow)
@@ -297,12 +338,16 @@ class Timetable:
             output.write("\n</html>")
             output.close()
 
-class Form:
+class Session:
     def __init__(self, name, lect, room, col):
         self.name = name
         self.lect = lect
         self.room = room
         self.col = col
+      
+class Event:
+    def __init__(self, name):
+        self.name = name
 
 if __name__ == "__main__":
   console = Console()
