@@ -160,6 +160,8 @@ class Timetable:
         if(resp in ["y", "Y"]): self.form[abrv].lect = input("New Lecturer: ")
         resp = input("Current Room: {}. Edit? (y/n)".format(self.form[abrv].room))
         if(resp in ["y", "Y"]): self.form[abrv].room = input("New Room: ")
+        resp = input("Current Colour: {}. Edit? (y/n): ".format(self.form[abrv].lect))
+        if(resp in ["y", "Y"]): self.form[abrv].col = input("New Colour: ")
         return
     def createDir(self, abrv, name, lect, room, col):
         newForm = Session(name, lect, room, col)
